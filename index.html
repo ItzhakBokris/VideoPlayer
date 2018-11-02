@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <script src='src/videoPlayer.js'></script>
+        <style>
+            body {
+                padding: 0;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: black;
+                flex-direction: column;
+            }
+
+            video {
+                width: 100%;
+                max-height: 100%;
+            }
+
+            .progress-bar {
+                height: 20px;
+                width: 100%;
+                margin-top: -20px;
+                z-index: 10;
+                background-color: #0000006b;
+            }
+
+            #progress-bar-value {
+                background-color: #ffffffba;
+                height: 100%;
+                width: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <video id="video" onclick="playPauseVideo()"></video>
+        <div class="progress-bar" onclick="onProgressBarClick(event)">
+            <div id="progress-bar-value"></div>
+        </div>
+        <script>
+            const videoElement = document.getElementById('video');
+            const videoPlayer = new VideoPlayer(videoElement, 'frag_bunny.mp4');
+            const progressBarValue = document.getElementById('progress-bar-value');
+            videoPlayer.setOnTimeUpdate(timeFraction => progressBarValue.style.width = (100 * timeFraction) + '%');
+
+            function playPauseVideo() {
+                if (videoPlayer.isPlaying()) {
+                    videoPlayer.pause();
+                } else {
+                    videoPlayer.play();
+                }
+            }
+
+            function onProgressBarClick(event) {
+                const timeFraction = event.clientX / event.srcElement.parentElement.clientWidth;
+                videoPlayer.seekTo(timeFraction);
+            }
+        </script>
+    </body>
+</html>
