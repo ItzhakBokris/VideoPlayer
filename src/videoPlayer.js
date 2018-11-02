@@ -12,10 +12,9 @@ class VideoPlayer {
         }
         this.videoElement = videoElement;
         this.videoUrl = videoUrl;
-        this.onTimeUpdate = () => null;
         this.mediaSource = null;
         this.sourceBuffer = null;
-        this.videoLength = null;
+        this.onTimeUpdate = () => null;
         this.initialize();
     }
 
@@ -52,10 +51,7 @@ class VideoPlayer {
         this.mediaSource.addEventListener('sourceopen', () => {
             this.sourceBuffer = this.mediaSource.addSourceBuffer(MIME_CODEC);
             this.sourceBuffer.addEventListener('error', error => console.error('Source buffer problem: ', error));
-            this.getVideoFileLength(length => {
-                this.videoLength = length;
-                this.fetchSegmentsInSerial(0);
-            });
+            this.fetchSegmentsInSerial(0);
         });
         this.videoElement.addEventListener('timeupdate', () =>
             this.onTimeUpdate(this.videoElement.currentTime / this.videoElement.duration));
@@ -64,14 +60,16 @@ class VideoPlayer {
     fetchSegmentsInSerial(fromIndex) {
         const start = fromIndex * SEGMENT_LENGTH;
         const end = start + SEGMENT_LENGTH - 1;
-        if (start < this.videoLength) {
-            this.fetchSegment(start, end, chunk => {
-                this.sourceBuffer.appendBuffer(chunk);
-                setTimeout(() => this.fetchSegmentsInSerial(fromIndex + 1), 500);
-            })
-        } else {
-            this.mediaSource.endOfStream();
-        }
+        this.fetchSegment(start, end, chunk => {
+            this.sourceBuffer.appendBuffer(chunk);
+            setTimeout(() => {
+                if (chunk.byteLength === SEGMENT_LENGTH) {
+                    this.fetchSegmentsInSerial(fromIndex + 1);
+                } else {
+                    this.mediaSource.endOfStream();
+                }
+            }, 500);
+        });
     }
 
     fetchSegment(start, end, callback) {
@@ -80,13 +78,6 @@ class VideoPlayer {
         xhr.responseType = 'arraybuffer';
         xhr.setRequestHeader('Range', 'bytes=' + start + '-' + end);
         xhr.onload = () => callback(xhr.response);
-        xhr.send();
-    };
-
-    getVideoFileLength(callback) {
-        const xhr = new XMLHttpRequest();
-        xhr.open('head', this.videoUrl);
-        xhr.onload = () => callback(xhr.getResponseHeader('content-length'));
         xhr.send();
     };
 }
